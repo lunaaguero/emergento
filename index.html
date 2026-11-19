@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}</style>
+<title>Desafío del carro de paro</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: ECG-paper sheet, scoreboard strip on top, one question card at a time */
+:root{
+  --paper:#FBF5F0; --grid:#F1D6D0; --grid-bold:#E7BDB4;
+  --ink:#2A1E22; --muted:#6E5A5F; --card:#FFFFFF; --line:#E6D2CD;
+  --accent:#B3261E; --accent-ink:#FFFFFF;
+  --ok:#1E7A5A; --ok-bg:#E1F3EB; --bad:#B3261E; --bad-bg:#FBE4E1;
+  --p1:#B3261E; --p2:#1F5FA8; --p3:#8A5A00; --p4:#6B3FA0;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#1C1518; --grid:#2A1F23; --grid-bold:#36272C;
+  --ink:#F4E9E6; --muted:#BFA9AE; --card:#251B1F; --line:#3E2E33;
+  --accent:#F0857A; --accent-ink:#2A0E0B;
+  --ok:#6FD3A9; --ok-bg:#163428; --bad:#F59C92; --bad-bg:#3E1C1A;
+  --p1:#F0857A; --p2:#7FB2EE; --p3:#E7B355; --p4:#BE9BEB; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#1C1518; --grid:#2A1F23; --grid-bold:#36272C;
+  --ink:#F4E9E6; --muted:#BFA9AE; --card:#251B1F; --line:#3E2E33;
+  --accent:#F0857A; --accent-ink:#2A0E0B;
+  --ok:#6FD3A9; --ok-bg:#163428; --bad:#F59C92; --bad-bg:#3E1C1A;
+  --p1:#F0857A; --p2:#7FB2EE; --p3:#E7B355; --p4:#BE9BEB; color-scheme:dark}
+*{box-sizing:border-box}
+body{
+  background-color:var(--paper);
+  background-image:
+    linear-gradient(var(--grid-bold) 1px,transparent 1px),
+    linear-gradient(90deg,var(--grid-bold) 1px,transparent 1px),
+    linear-gradient(var(--grid) 1px,transparent 1px),
+    linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:40px 40px,40px 40px,8px 8px,8px 8px;
+  color:var(--ink); font-family:var(--body); font-size:16px; line-height:1.55;
+}
+.wrap{max-width:760px;margin:0 auto;padding-block:20px 48px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:flex;flex-direction:column;gap:18px}
+header{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(28px,6vw,40px);line-height:1.05;margin:0;letter-spacing:-.01em;text-wrap:balance}
+.trace{display:block;width:150px;height:34px;color:var(--accent)}
+.sub{color:var(--muted);margin:4px 0 0;font-size:14px}
+.scores{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.pl{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0;position:relative}
+.pl .nm{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:6px}
+.pl .dot{width:9px;height:9px;border-radius:50%;flex:none;background:var(--c)}
+.pl .pt{font-family:var(--mono);font-weight:700;font-size:26px;font-variant-numeric:tabular-nums;color:var(--c)}
+.pl .st{font-size:12px;color:var(--muted)}
+.pl.on{border-color:var(--c);box-shadow:0 0 0 2px var(--c) inset}
+.pl.on::after{content:"Turno";position:absolute;top:8px;right:10px;font-size:10px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;color:var(--c)}
+@media (max-width:520px){.scores{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px;display:flex;flex-direction:column;gap:16px}
+.meta{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;background:var(--paper);border:1px solid var(--line);font-weight:600;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink)}
+.who{font-family:var(--display);font-weight:700;font-size:15px;color:var(--c)}
+.bar{height:6px;background:var(--paper);border-radius:3px;overflow:hidden;border:1px solid var(--line)}
+.bar i{display:block;height:100%;background:var(--accent);transition:width .3s}
+.q{font-family:var(--display);font-weight:700;font-size:clamp(20px,4.2vw,25px);line-height:1.25;margin:0;text-wrap:balance}
+.opts{display:grid;gap:10px}
+.opt{all:unset;box-sizing:border-box;cursor:pointer;display:flex;gap:12px;align-items:flex-start;padding:13px 14px;border:1px solid var(--line);border-radius:10px;background:var(--card);font-size:16px;line-height:1.4;transition:border-color .15s,background .15s}
+.opt:hover:not([disabled]){border-color:var(--ink)}
+.opt:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.opt .k{font-family:var(--mono);font-weight:700;font-size:13px;width:24px;height:24px;flex:none;border-radius:6px;display:grid;place-items:center;background:var(--paper);border:1px solid var(--line)}
+.opt[disabled]{cursor:default}
+.opt.ok{border-color:var(--ok);background:var(--ok-bg)}
+.opt.ok .k{background:var(--ok);color:var(--card);border-color:var(--ok)}
+.opt.bad{border-color:var(--bad);background:var(--bad-bg)}
+.opt.bad .k{background:var(--bad);color:var(--card);border-color:var(--bad)}
+.opt.dim{opacity:.55}
+.fb{border-radius:10px;padding:14px 16px;font-size:15px}
+.fb b{display:block;font-family:var(--display);font-size:17px;margin-bottom:2px}
+.fb.ok{background:var(--ok-bg);color:var(--ink);border:1px solid var(--ok)}
+.fb.ok b{color:var(--ok)}
+.fb.bad{background:var(--bad-bg);color:var(--ink);border:1px solid var(--bad)}
+.fb.bad b{color:var(--bad)}
+.row{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.btn{all:unset;box-sizing:border-box;cursor:pointer;padding:11px 18px;border-radius:10px;font-weight:600;font-size:15px;background:var(--accent);color:var(--accent-ink)}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.btn:hover{filter:brightness(1.06)}
+.rank{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
+.rank li{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--paper)}
+.rank .pos{font-family:var(--mono);font-weight:700;width:26px;color:var(--muted)}
+.rank .n{flex:1;font-weight:600;min-width:0}
+.rank .s{font-family:var(--mono);font-weight:700;font-variant-numeric:tabular-nums;color:var(--c)}
+.rank li:first-child{border-color:var(--c);box-shadow:0 0 0 2px var(--c) inset}
+.note{font-size:13px;color:var(--muted);margin:0}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <svg class="trace" viewBox="0 0 150 34" aria-hidden="true"><path d="M0 22 H28 q4 -6 8 0 h6 l3 4 l4 -24 l5 28 l3 -8 h10 q6 -8 12 0 h8 l4 -10 l4 16 l4 -18 l4 22 l4 -14 l4 10 l4 -16 l4 18 l4 -8 H150" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>
+      <h1>Desafío del carro de paro</h1>
+      <p class="sub">Paro, ritmos y H y T. Un turno por persona; cada acierto suma un punto.</p>
+    </div>
+  </header>
+
+  <section class="scores" id="scores" aria-label="Marcador"></section>
+
+  <main class="card" id="card" aria-live="polite"></main>
+
+  <p class="note">Respuestas según el algoritmo AHA 2025 (y ERC 2025 donde se aclara). Ante una duda con la cátedra, gana la cátedra.</p>
+</div>
+
+<script>
+const PLAYERS=[
+  {name:"Luna",c:"var(--p1)"},{name:"Azul",c:"var(--p2)"},
+  {name:"Agustín",c:"var(--p3)"},{name:"Agustina",c:"var(--p4)"}];
+
+const Q=[
+ {cat:"Algoritmo",q:"Según la AHA 2025, en una FV, ¿cuándo va la primera adrenalina?",o:["Antes de la primera descarga","En el ciclo que sigue a la 2.ª descarga","Después de la 3.ª descarga, junto con la amiodarona","Solo si fallan 5 descargas"],a:1,e:"Electricidad antes que adrenalina: va cuando fallan las primeras descargas. Ojo, el ERC europeo la da después de la 3.ª."},
+ {cat:"Algoritmo",q:"En una asistolia, ¿cuándo va la adrenalina?",o:["Lo antes posible, apenas hay vía","Después del segundo ciclo de RCP","Solo si no respondió a la atropina","Después de la primera descarga"],a:0,e:"Rama no desfibrilable: adrenalina 1 mg IV ya y cada 3–5 min. La atropina ya no se usa en el paro."},
+ {cat:"Fármacos",q:"Dosis de amiodarona en FV o TV sin pulso refractaria",o:["150 mg IV en 10 min","300 mg IV en bolo; segunda dosis 150 mg","300 mg IV cada 3–5 min","5 mg/kg IV en 1 hora"],a:1,e:"300 mg en bolo después de la 3.ª descarga; si persiste, 150 mg. Son las dos únicas dosis del paro."},
+ {cat:"Fármacos",q:"Alternativa a la amiodarona en FV refractaria: primera dosis",o:["Lidocaína 1–1,5 mg/kg IV","Procainamida 20 mg/min IV","Adenosina 6 mg IV","Atropina 1 mg IV"],a:0,e:"Lidocaína 1–1,5 mg/kg IV; segunda dosis 0,5–0,75 mg/kg."},
+ {cat:"Vía aérea",q:"Paciente intubado en paro. ¿Cómo siguen compresiones y ventilación?",o:["30:2","15:2","Compresiones continuas y 1 ventilación cada 6 s","Compresiones continuas y 1 ventilación cada 2 s"],a:2,e:"10 ventilaciones por minuto sin pausar las compresiones. Hiperventilar empeora el pronóstico."},
+ {cat:"Vía aérea",q:"El residente colocó una cánula de Mayo. ¿Qué relación seguís?",o:["30:2","Compresiones continuas y 10 ventilaciones por minuto","15:2","Solo compresiones"],a:0,e:"La Mayo y la nasofaríngea no son vía aérea avanzada. Se sigue 30:2."},
+ {cat:"Vía aérea",q:"¿Cuál de estos dispositivos cuenta como vía aérea avanzada?",o:["Cánula de Mayo","Cánula nasofaríngea","Máscara laríngea","Máscara con reservorio"],a:2,e:"Tubo endotraqueal y supraglóticos (máscara laríngea). Con ellos: compresiones continuas y 1 ventilación cada 6 s."},
+ {cat:"RCP",q:"Profundidad y frecuencia de las compresiones en el adulto",o:["3–4 cm, 80–100 por minuto","Al menos 5 cm (sin pasar de 6), 100–120 por minuto","Al menos 6 cm, 120–140 por minuto","5 cm, 60–80 por minuto"],a:1,e:"Con reexpansión completa del tórax y cambio de compresor cada 2 min."},
+ {cat:"RCP",q:"Pausa máxima en las compresiones para chequear el ritmo",o:["Menos de 10 s","Menos de 20 s","Menos de 30 s","1 minuto"],a:0,e:"Si hace falta más tiempo, se retoman las compresiones y se termina de evaluar mientras siguen."},
+ {cat:"Desfibrilación",q:"Desfibrilador bifásico y no conocés la energía del fabricante. ¿Cuánto cargás?",o:["120 J fijos","200 J fijos","La máxima disponible","360 J sincronizados"],a:2,e:"Bifásico: la del fabricante (inicial 120–200 J) o la máxima si no se sabe. Monofásico: 360 J."},
+ {cat:"Desfibrilación",q:"Acabás de descargar en una FV. ¿Qué hacés inmediatamente?",o:["Palpar el pulso carotídeo","Mirar el monitor 10 s","Retomar las compresiones ya, sin chequear pulso","Dar adrenalina antes de seguir"],a:2,e:"El ritmo se vuelve a chequear al final de los 2 min de RCP."},
+ {cat:"Ritmos",q:"En un chequeo aparece un ritmo organizado de QRS angosto. ¿Qué hacés?",o:["Descargar","Palpar pulso en 10 s o menos","Dar amiodarona","Cardioversión sincronizada"],a:1,e:"Con pulso: RCE y cuidados post-paro. Sin pulso: AESP, seguir RCP y adrenalina."},
+ {cat:"Ritmos",q:"¿Qué es la AESP?",o:["Un ritmo caótico sin QRS","Actividad eléctrica organizada que no genera pulso","Una taquicardia de QRS ancho sin pulso","Ausencia total de actividad eléctrica"],a:1,e:"Lo eléctrico funciona, falla el bombeo. Por eso es la reina de las H y T."},
+ {cat:"Ritmos",q:"Línea plana en el monitor. Antes de decir asistolia revisás…",o:["Pupilas, glucemia y temperatura","Cables, ganancia y derivación","Pulso, saturación y presión","Nada: adrenalina directamente"],a:1,e:"Puede ser un cable suelto o una FV fina, y esa sí se descarga."},
+ {cat:"Ritmos",q:"TV de QRS ancho a 180 lpm, CON pulso e hipotensa. Conducta",o:["Desfibrilación no sincronizada","Cardioversión sincronizada","Adrenalina 1 mg IV","RCP por 2 minutos"],a:1,e:"Con pulso e inestable: cardioversión sincronizada. Sin pulso: desfibrilación."},
+ {cat:"Ritmos",q:"TSV estable (QRS angosto, regular, 190 lpm). Después de las maniobras vagales…",o:["Adenosina 6 mg IV en bolo rápido; si no revierte, 12 mg","Amiodarona 300 mg IV en bolo","Adenosina 12 mg IV lenta","Desfibrilación"],a:0,e:"Con lavado rápido de solución fisiológica. Si está inestable: cardioversión sincronizada."},
+ {cat:"Ritmos",q:"Torsión de puntas sin pulso: además de la descarga, ¿qué agregás?",o:["Sulfato de magnesio 1–2 g IV","Gluconato de calcio","Adenosina","Atropina"],a:0,e:"Es una TV polimorfa sobre QT largo. Buscar hipopotasemia e hipomagnesemia."},
+ {cat:"H y T",q:"Hiperpotasemia en paro: ¿qué precaución tenés con el calcio y el bicarbonato?",o:["Darlos juntos en la misma jeringa","No pasarlos por la misma vía sin lavar: precipitan","El bicarbonato va antes que la adrenalina","El calcio solo va por vía intraósea"],a:1,e:"Cloruro de calcio 10 % 10 ml y bicarbonato 50 mEq, por vías separadas o lavando entre ambos."},
+ {cat:"H y T",q:"En la hiperpotasemia, ¿qué hace el calcio?",o:["Baja el potasio sérico","Estabiliza la membrana del miocardio","Elimina potasio por orina","Mete potasio en la célula"],a:1,e:"El calcio protege; la insulina con dextrosa y el bicarbonato bajan el potasio; la diálisis lo saca."},
+ {cat:"H y T",q:"Paciente en diálisis que faltó a dos sesiones y hace un paro. Causa más probable",o:["Hipotermia","Hiperpotasemia","Hipovolemia","Taponamiento"],a:1,e:"Pistas típicas: T picudas y QRS ancho antes del paro."},
+ {cat:"H y T",q:"Después de un trombolítico por sospecha de TEP, ¿cuánto seguís la RCP?",o:["10 minutos","20 minutos","60–90 minutos","No se sigue: se espera el efecto"],a:2,e:"El fármaco tarda en disolver el trombo; cortar antes es perder la única chance."},
+ {cat:"H y T",q:"Intubado por TEP, con buena RCP, la EtCO2 sale muy baja. ¿Por qué?",o:["Shunt","Espacio muerto: se ventila pero no llega sangre","Hiperventilación","El tubo siempre está en el esófago"],a:1,e:"El trombo tapa la arteria y el CO2 no llega a esos alvéolos. La EtCO2 sola no sirve para suspender."},
+ {cat:"H y T",q:"Trauma en AESP: yugulares ingurgitadas, hemitórax sin entrada de aire, tráquea desviada",o:["Pericardiocentesis","Descompresión con aguja y luego tubo de tórax","2 litros de cristaloide","Desfibrilar"],a:1,e:"Neumotórax a tensión: 2.º espacio intercostal línea medioclavicular, o 4.º–5.º espacio línea axilar."},
+ {cat:"H y T",q:"Paro con temperatura central menor de 30 °C. ¿Y la adrenalina?",o:["Cada 3–5 min como siempre","Doble dosis","No darla hasta llegar a 30 °C o más","Solo por vía intraósea"],a:2,e:"Entre 30 y 35 °C se da cada 6–10 min. Recalentar y seguir RCP."},
+ {cat:"H y T",q:"Hipopotasemia en paro según el ERC 2025",o:["Cloruro de potasio 20 mEq IV en 2–3 min, luego 10 mEq en 2 min","Cloruro de potasio 40 mEq IV en 4 horas","Gluconato de potasio por boca","No se repone durante el paro"],a:0,e:"Controlar el potasio y corregir el magnesio."},
+ {cat:"H y T",q:"Paro por opioides: dosis de naloxona",o:["0,4 mg IV, repetir cada 2–3 min","10 mg IV dosis única","Contraindicada en el paro","1 mg/kg IV"],a:0,e:"O 2 mg intranasal. Nunca debe frenar la RCP: lo que salva es ventilar y comprimir."},
+ {cat:"Post-paro",q:"Meta de saturación después del RCE (AHA 2025)",o:["100 %","94–100 %","90–98 %","85–90 %"],a:2,e:"FiO2 100 % hasta poder medir; después titular. Evitar hipoxia e hiperoxia."},
+ {cat:"Post-paro",q:"Meta hemodinámica después del RCE",o:["PAM 65 mmHg o más","Sistólica 140 mmHg o más","PAM 90 mmHg o más","Sistólica 80 mmHg o más"],a:0,e:"Con cristaloides y/o vasopresor. Además: PaCO2 35–45 y glucemia 70–180."},
+ {cat:"Post-paro",q:"Tras el RCE no obedece órdenes. Control de temperatura",o:["Hipotermia a 32 °C por 12 h","Entre 32 y 37,5 °C al menos 36 h, evitando la fiebre","Normotermia sin control activo","Recalentar a 39 °C"],a:1,e:"Estrategia deliberada de control de temperatura (AHA 2025)."},
+ {cat:"Post-paro",q:"RCE después de una FV, ritmo estable. ¿Dejás amiodarona profiláctica?",o:["Sí, siempre en infusión 24 h","No de rutina; solo si la arritmia recurre","Sí, un bolo de 150 mg","Sí, pero cambiada a lidocaína"],a:1,e:"La evidencia no la respalda. Si recurre: infusión, y tratar la causa (potasio, magnesio, cinecoronariografía)."},
+ {cat:"Fármacos",q:"Vía de elección para los fármacos según la AHA 2025",o:["Intraósea","Intravenosa periférica; intraósea si no se logra rápido","Endotraqueal","Central obligatoria"],a:1,e:"Cambio de 2025: la IV va antes que la IO."},
+ {cat:"Fármacos",q:"¿Bicarbonato de rutina en el paro?",o:["Sí, 1 mEq/kg cada 10 min","No; solo con indicación (hiperpotasemia, tricíclicos)","Sí, después de la 3.ª descarga","Solo en la asistolia"],a:1,e:"Tampoco calcio, magnesio ni corticoides de rutina."}
+];
+
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function fresh(){
+  const order=shuffle(Q.map((_,i)=>i));
+  const opts=order.map(i=>shuffle(Q[i].o.map((_,k)=>k)));
+  return {order,opts,i:0,turn:0,scores:[0,0,0,0],streak:[0,0,0,0],best:[0,0,0,0],picked:null,done:false};
+}
+let S;
+const KEY="carro-paro-v1";
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function load(){try{const r=JSON.parse(localStorage.getItem(KEY));if(r&&r.order&&r.order.length===Q.length)return r}catch(e){}return null}
+
+const $=s=>document.querySelector(s);
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function renderScores(){
+  $("#scores").innerHTML=PLAYERS.map((p,k)=>`
+    <div class="pl ${!S.done&&k===S.turn?'on':''}" style="--c:${p.c}">
+      <span class="nm"><span class="dot"></span>${esc(p.name)}</span>
+      <span class="pt">${S.scores[k]}</span>
+      <span class="st">${S.streak[k]>=2?'Racha de '+S.streak[k]:'&nbsp;'}</span>
+    </div>`).join("");
+}
+
+function render(){
+  renderScores();
+  if(S.done){return renderEnd()}
+  const qi=S.order[S.i], q=Q[qi], map=S.opts[S.i], p=PLAYERS[S.turn];
+  const L="ABCD";
+  const answered=S.picked!==null;
+  let html=`
+    <div class="meta">
+      <span class="chip">${esc(q.cat)}</span>
+      <span>Pregunta ${S.i+1} de ${Q.length} · <span class="who" style="--c:${p.c}">Responde ${esc(p.name)}</span></span>
+    </div>
+    <div class="bar" aria-hidden="true"><i style="width:${(S.i/Q.length)*100}%"></i></div>
+    <h2 class="q">${esc(q.q)}</h2>
+    <div class="opts">`;
+  map.forEach((orig,pos)=>{
+    let cls="";
+    if(answered){
+      if(orig===q.a)cls="ok";else if(pos===S.picked)cls="bad";else cls="dim";
+    }
+    html+=`<button class="opt ${cls}" id="opt-${pos}" data-pos="${pos}" ${answered?'disabled':''}><span class="k">${L[pos]}</span><span>${esc(q.o[orig])}</span></button>`;
+  });
+  html+=`</div>`;
+  if(answered){
+    const right=map[S.picked]===q.a;
+    html+=`<div class="fb ${right?'ok':'bad'}"><b>${right?'¡Correcto! +1 para '+esc(p.name):'No era esa'}</b>${esc(q.e)}</div>
+      <div class="row"><button class="btn" id="next">${S.i+1<Q.length?'Siguiente turno':'Ver resultados'}</button></div>`;
+  }
+  $("#card").innerHTML=html;
+  document.querySelectorAll(".opt:not([disabled])").forEach(b=>b.addEventListener("click",()=>pick(+b.dataset.pos)));
+  const n=$("#next"); if(n){n.addEventListener("click",next);n.focus()}
+}
+
+function pick(pos){
+  if(S.picked!==null)return;
+  S.picked=pos;
+  const q=Q[S.order[S.i]];
+  if(S.opts[S.i][pos]===q.a){S.scores[S.turn]++;S.streak[S.turn]++;S.best[S.turn]=Math.max(S.best[S.turn],S.streak[S.turn])}
+  else S.streak[S.turn]=0;
+  save();render();
+}
+function next(){
+  S.picked=null;
+  if(S.i+1>=Q.length){S.done=true}else{S.i++;S.turn=(S.turn+1)%PLAYERS.length}
+  save();render();window.scrollTo({top:0,behavior:"smooth"});
+}
+function renderEnd(){
+  const perPlayer=Q.length/PLAYERS.length;
+  const r=PLAYERS.map((p,k)=>({p,k,s:S.scores[k]})).sort((a,b)=>b.s-a.s);
+  const top=r[0].s, winners=r.filter(x=>x.s===top).map(x=>x.p.name);
+  $("#card").innerHTML=`
+    <div class="meta"><span class="chip">Resultado final</span><span>${perPlayer} preguntas por persona</span></div>
+    <h2 class="q">${winners.length>1?'Empate: '+esc(winners.join(' y ')):'Gana '+esc(winners[0])}</h2>
+    <ol class="rank">${r.map((x,i)=>`<li style="--c:${x.p.c}"><span class="pos">${i+1}.</span><span class="n">${esc(x.p.name)}</span><span class="s">${x.s}/${perPlayer}</span></li>`).join("")}</ol>
+    <p class="note">Mejor racha: ${PLAYERS.map((p,k)=>esc(p.name)+' '+S.best[k]).join(' · ')}</p>
+    <div class="row"><button class="btn" id="again">Jugar de nuevo</button></div>`;
+  $("#again").addEventListener("click",()=>{S=fresh();save();render()});
+}
+
+function start(data){
+  S=(data&&data.S)||load()||fresh();
+  render();
+}
+window.claude?.hot?.snapshot?.(()=>({S}));
+window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+</script>
+</body>
+</html>
